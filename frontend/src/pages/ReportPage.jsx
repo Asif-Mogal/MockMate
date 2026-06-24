@@ -54,7 +54,7 @@ export function ReportPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl bg-ink p-6 text-white shadow-panel border border-slate-800">
+      <section className="rounded-xl bg-ink p-4 sm:p-6 text-white shadow-panel border border-slate-800">
         <div className="flex flex-wrap items-center justify-between gap-6">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-cyan-200">Final report</p>
@@ -76,7 +76,7 @@ export function ReportPage() {
         <ReportList title="Recommendations" items={report.recommendations} variant="recommendations" />
       </section>
 
-      <section className="rounded-xl bg-white p-6 shadow-panel border border-slate-100">
+      <section className="rounded-xl bg-white p-4 sm:p-6 shadow-panel border border-slate-100">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <h2 className="text-xl font-bold text-slate-800">Question Review</h2>
           <button 
@@ -138,7 +138,7 @@ export function ReportPage() {
             return report.questions.map((question, index) => {
               const { critique, improvement, ideal } = parseFeedback(question);
               return (
-                <article className="rounded-xl border border-slate-100 p-6 bg-slate-50/50 shadow-sm" key={question.id}>
+                <article className="rounded-xl border border-slate-100 p-4 sm:p-6 bg-slate-50/50 shadow-sm" key={question.id}>
                   <div className="flex flex-wrap justify-between gap-3 items-start border-b border-slate-100 pb-3">
                     <h3 className="font-bold text-slate-800 text-base lg:text-lg flex-1">
                       Q{index + 1}. {question.question_text}
@@ -223,7 +223,7 @@ function ReportList({ title, items, variant }) {
   const colors = getColors();
   
   return (
-    <div className="rounded-xl bg-white p-6 shadow-panel border border-slate-100">
+    <div className="rounded-xl bg-white p-4 sm:p-6 shadow-panel border border-slate-100">
       <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">{title}</h2>
       <ul className="mt-4 space-y-3">
         {(items && items.length ? items : ["No items available."]).map((item) => (

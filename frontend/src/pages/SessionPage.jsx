@@ -28,6 +28,28 @@ export function SessionPage() {
     [interview]
   );
 
+  // Sync answer state only when question index changes or a new interview loads
+  useEffect(() => {
+    if (interview?.questions?.[currentIndex]) {
+      setAnswer(interview.questions[currentIndex].user_answer || "");
+    }
+  }, [currentIndex, interview?.id]);
+
+  const handleAnswerChange = (value) => {
+    setAnswer(value);
+    // Keep local interview state in sync so switching back/forth preserves draft text
+    setInterview((prev) => {
+      if (!prev) return prev;
+      const updatedQuestions = prev.questions.map((q, idx) => {
+        if (idx === currentIndex) {
+          return { ...q, user_answer: value };
+        }
+        return q;
+      });
+      return { ...prev, questions: updatedQuestions };
+    });
+  };
+
   const submitAnswer = async () => {
     if (!answer.trim() || !question) return;
     setSubmitting(true);
@@ -45,8 +67,6 @@ export function SessionPage() {
         });
         return { ...prev, questions: updatedQuestions };
       });
-      
-      setAnswer("");
       
       // Check if this was the last question
       if (currentIndex + 1 >= interview.questions.length) {
@@ -66,26 +86,57 @@ export function SessionPage() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-      <section className="rounded-xl bg-white p-6 shadow-panel border border-slate-100">
+      <section className="rounded-xl bg-white p-4 sm:p-6 shadow-panel border border-slate-100">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-ocean">{interview.domain} · {interview.difficulty}</p>
-            <h1 className="mt-2 text-2xl font-bold text-slate-800">Question {currentIndex + 1} of {interview.total_questions}</h1>
+            <p className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-ocean">{interview.domain} · {interview.difficulty}</p>
+            <h1 className="mt-2 text-xl sm:text-2xl font-bold text-slate-800">Question {currentIndex + 1} of {interview.total_questions}</h1>
           </div>
-          <span className="rounded-full bg-cyan-50 border border-cyan-100 px-3 py-1 text-sm font-semibold text-ocean">{answeredCount}/{interview.total_questions} answered</span>
+          <span className="rounded-full bg-cyan-50 border border-cyan-100 px-3 py-1 text-xs sm:text-sm font-semibold text-ocean">{answeredCount}/{interview.total_questions} answered</span>
         </div>
 
-        <p className="mt-8 text-xl leading-8 text-slate-700 font-medium">{question.question_text}</p>
+        {/* Mobile Horizontal Progress Bar (Visible only on small screens) */}
+        <div className="lg:hidden mt-4 flex items-center gap-2 border-b border-slate-100 pb-4 overflow-x-auto py-1 scrollbar-hide">
+          {interview.questions.map((q, idx) => {
+            const isCurrent = idx === currentIndex;
+            const isAnswered = !!q.user_answer;
+            return (
+              <button
+                key={q.id}
+                onClick={() => setCurrentIndex(idx)}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-200 border ${
+                  isCurrent
+                    ? "bg-ocean text-white border-ocean ring-2 ring-cyan-100 animate-pulse-subtle"
+                    : isAnswered
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                      : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                {idx + 1}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="mt-6 sm:mt-8 text-lg sm:text-xl leading-8 text-slate-700 font-medium">{question.question_text}</p>
         <textarea
           className="focus-ring mt-6 min-h-48 w-full rounded-xl border border-slate-200 p-4 text-slate-700 bg-slate-50/50"
           placeholder="Type your answer here..."
           value={answer}
-          onChange={(event) => setAnswer(event.target.value)}
+          onChange={(event) => handleAnswerChange(event.target.value)}
         />
         {error && <p className="mt-3 text-sm text-coral">{error}</p>}
         <div className="mt-6 flex flex-wrap gap-3">
+          {currentIndex > 0 && (
+            <button
+              className="focus-ring rounded-xl border border-slate-200 bg-white px-6 py-3.5 font-bold text-slate-700 hover:bg-slate-50 transition-colors duration-200"
+              onClick={() => setCurrentIndex(currentIndex - 1)}
+            >
+              Previous
+            </button>
+          )}
           <button 
-            className="focus-ring rounded-xl bg-ocean px-6 py-3.5 font-bold text-white hover:bg-cyan-800 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" 
+            className="focus-ring rounded-xl bg-ocean px-6 py-3.5 font-bold text-white hover:bg-cyan-800 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-1 sm:flex-initial justify-center" 
             onClick={submitAnswer} 
             disabled={submitting || !answer.trim()}
           >
@@ -95,24 +146,25 @@ export function SessionPage() {
         </div>
       </section>
 
-      <aside className="rounded-xl bg-white p-6 shadow-panel border border-slate-100 self-start">
+      <aside className="hidden lg:block rounded-xl bg-white p-6 shadow-panel border border-slate-100 self-start">
         <h2 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3">Interview Progress</h2>
         <div className="mt-4 space-y-2">
           {interview.questions.map((q, idx) => {
             const isCurrent = idx === currentIndex;
             const isAnswered = !!q.user_answer;
             return (
-              <div 
+              <button 
                 key={q.id} 
-                className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 ${
+                onClick={() => setCurrentIndex(idx)}
+                className={`w-full text-left flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 ${
                   isCurrent 
                     ? "border-ocean bg-cyan-50/40 text-ocean font-semibold" 
                     : isAnswered 
-                      ? "border-slate-50 bg-slate-50/50 text-slate-500" 
-                      : "border-transparent text-slate-400"
+                      ? "border-slate-50 bg-slate-50/50 text-slate-500 hover:bg-slate-100" 
+                      : "border-transparent text-slate-400 hover:bg-slate-50"
                 }`}
               >
-                <div className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${
+                <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold ${
                   isCurrent 
                     ? "bg-ocean text-white" 
                     : isAnswered 
@@ -121,13 +173,13 @@ export function SessionPage() {
                 }`}>
                   {idx + 1}
                 </div>
-                <div className="flex-1 truncate text-xs">
+                <div className="flex-1 truncate text-xs text-left">
                   {q.question_text}
                 </div>
                 {isAnswered && (
                   <CheckCircle2 className="text-emerald-500 shrink-0" size={16} />
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
