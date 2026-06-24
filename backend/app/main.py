@@ -8,6 +8,8 @@ from app.api.routes import auth, interviews
 from app.core.config import settings
 from app.database import Base, engine
 
+Base.metadata.create_all(bind=engine)
+
 with engine.connect() as conn:
     try:
         conn.execute(text("ALTER TABLE interviews ADD COLUMN IF NOT EXISTS strengths TEXT;"))
@@ -22,13 +24,14 @@ with engine.connect() as conn:
     except Exception as e:
         print(f"Startup migration failed: {e}")
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title=settings.app_name)
+
+# Allow multiple comma-separated origins and strip any trailing slashes
+origins = [origin.strip().rstrip("/") for origin in settings.frontend_origin.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
