@@ -27,7 +27,11 @@ with engine.connect() as conn:
 app = FastAPI(title=settings.app_name)
 
 # Allow multiple comma-separated origins and strip any trailing slashes
+import logging
+logger = logging.getLogger("uvicorn")
+logger.info(f"CORS raw setting FRONTEND_ORIGIN: {settings.frontend_origin}")
 origins = [origin.strip().rstrip("/") for origin in settings.frontend_origin.split(",")]
+logger.info(f"CORS allowed origins list: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
