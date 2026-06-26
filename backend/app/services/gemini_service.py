@@ -323,6 +323,7 @@ class GeminiService:
             f"2. 'ideal_answer': A detailed, accurate ideal answer that explains how a candidate should answer this question to score 100%.\n"
             f"3. 'keywords': A JSON list of 3-5 core technical terms, APIs, or key concepts that are essential to be mentioned in a correct answer (use single words or very short phrases in lowercase, e.g. ['where', 'having'] or ['virtual dom', 'diffing']).\n\n"
             f"Generate exactly {total_questions} questions.\n"
+            "CRITICAL: Every question generated must be completely unique and cover a different topic or concept within the domain. Do NOT repeat questions or ask about the same concept twice.\n"
             "Return ONLY the raw JSON object, without any explanation or markdown formatting."
         )
         data = self._json_response(prompt)
@@ -331,13 +332,17 @@ class GeminiService:
             return self._fallback_questions(domain, total_questions)
 
         valid_qs = []
+        seen_questions = set()
         for q in questions:
             if isinstance(q, dict) and "question_text" in q:
-                valid_qs.append({
-                    "question_text": str(q["question_text"]),
-                    "ideal_answer": str(q.get("ideal_answer", "No ideal answer available.")),
-                    "keywords": q.get("keywords", [])
-                })
+                q_text = str(q["question_text"]).strip()
+                if q_text.lower() not in seen_questions:
+                    seen_questions.add(q_text.lower())
+                    valid_qs.append({
+                        "question_text": q_text,
+                        "ideal_answer": str(q.get("ideal_answer", "No ideal answer available.")),
+                        "keywords": q.get("keywords", [])
+                    })
         if len(valid_qs) < total_questions:
             # fill with fallback if we didn't get enough
             fb = self._fallback_questions(domain, total_questions - len(valid_qs))
@@ -566,7 +571,10 @@ class GeminiService:
 
     def _json_response(self, prompt: str) -> dict:
         try:
-            response = self.model.generate_content(prompt)
+            response = self.model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "application/json"}
+            )
             text = (response.text or "").strip()
         except Exception as e:
             print(f"Gemini API error: {e}")
